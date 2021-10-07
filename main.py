@@ -8,6 +8,10 @@ import datetime
 import sys
 import webbrowser
 
+import requests  # for weather API
+import time
+
+
 chrome_path = "C:/Program  Files (x86)/Google/Chrome/Application/chrome.exe %s"
 
 playing = True
@@ -35,8 +39,8 @@ def take_command():
             command = command.lower()
             print("User said: " + command + '\n')
 
-            if "alexa" in command:  # Output just if say "alexa"
-                command = command.replace("alexa", "")  # Remove 'Alexa' from command
+            if "assistant" in command:  # Output just if say "alexa"
+                command = command.replace("assistant", "")  # Remove 'Alexa' from command
     except Exception as e:
         print(e)
         print("Unable to Recognize your voice.")
@@ -53,6 +57,11 @@ def run_assistant():
         print(song)
         talk("playing" + song)
         pywhatkit.playonyt(song)  # open youtube
+
+    elif "what is the time in" in command:  # Time in the world
+        city = command.replace("what is the time in ", "")
+        current_time(city)
+        return
 
     elif "time" in command:
         time = datetime.datetime.now().strftime('%H:%M')  # ('%I:%M %p) for AM
@@ -85,7 +94,8 @@ def run_assistant():
         talk("User asked to Locate" + location)
         map_string = ' '.join(sys.argv[1:])
         print(map_string)
-        webbrowser.get(chrome_path).open('https://www.google.com/maps/place/' + map_string)
+        webbrowser.open('https://www.google.com/maps/place/' + map_string)
+        # webbrowser.get(chrome_path).open('https://www.google.com/maps/place/' + map_string)
         # webbrowser.get(chrome_path).open("https://www.google.nl / maps / place/" + location + "")
 
     elif "logout" in command or "exit" in command:
@@ -93,9 +103,68 @@ def run_assistant():
         talk("Good bye")
         exit(1)
 
+    elif "what is the weather" in command:
+        weather("israel")
+        return
+
+    elif "what is the weather in" in command:
+        place = command.replace("what is the weather in", '')
+        weather(place)
+        return
+
     else:
         print("Please say the command again")
         talk("Please say the command again")
+
+
+def weather(place):
+    api = "https://api.openweathermap.org/data/2.5/weather?q=" + place + "&appid=06c921750b9a82d8f5d1294e1586276f"
+
+    json_data = requests.get(api).json()
+
+    try:
+        condition = json_data["weather"][0]["main"]
+    except KeyError:
+        return
+
+    temp = int(json_data["main"]["temp"] - 273.15)
+    talk("The weather in " + place + " is " + condition + ", and " + str(temp) + " celsius degrees")
+    print("The weather in " + place + " is " + condition + ", and " + str(temp) + " celsius degrees")
+
+
+def current_time(place):
+    api = "https://api.openweathermap.org/data/2.5/weather?q=" + place + "&appid=06c921750b9a82d8f5d1294e1586276f"
+
+    json_data = requests.get(api).json()
+
+    time_zone = json_data['timezone'] / 3600
+
+    current_time = ""
+
+    hour = time.gmtime().tm_hour.real
+    min = time.gmtime().tm_min.real
+    sec = time.gmtime().tm_sec.real
+    if (time_zone * 10) % 10 == 0:
+        hour += int(time_zone)
+        if hour < 10:
+            current_time += '0' + str(hour)
+        else:
+            current_time += str(hour)
+        current_time += ':'
+
+        if min < 10:
+            current_time += '0' + str(min)
+        else:
+            current_time += str(min)
+        current_time += ':'
+
+        if sec < 10:
+            current_time += '0' + str(sec)
+        else:
+            current_time += str(sec)
+
+        talk("The time in " + place + " is: " + current_time)
+        print("The time in " + place + " is: " + current_time)
 
 
 def start():
